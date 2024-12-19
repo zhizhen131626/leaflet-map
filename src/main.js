@@ -1,4 +1,6 @@
 import Vue from 'vue'
+import * as leaflet from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 // reset css
 import 'normalize.css'
@@ -9,6 +11,8 @@ import router from './router'
 import store from './store'
 
 Vue.config.productionTip = false
+
+Vue.prototype.$leaflet = leaflet
 
 new Vue({
   router,

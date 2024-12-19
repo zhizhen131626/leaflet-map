@@ -1,9 +1,10 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/">Home</router-link>
+      <transition name="fade" mode="out-in" appear>
+        <router-view />
+      </transition>
     </div>
-    <router-view />
   </div>
 </template>
 
@@ -17,8 +18,6 @@
 }
 
 #nav {
-  padding: 30px;
-
   a {
     font-weight: bold;
     color: #2c3e50;
