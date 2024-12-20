@@ -3,7 +3,9 @@
 </template>
 
 <script>
-import hunan from '@/common/hunan.json'
+import HeatmapOverlay from 'heatmap.js/plugins/leaflet-heatmap'
+// import hunan from '@/common/hunan.json'
+import changsha from '@/common/changsha.json'
 
 export default {
   name: 'Home',
@@ -43,6 +45,7 @@ export default {
       this.addPolygon()
       this.addPopup()
       this.addAreaColor()
+      this.addHeartLayer()
     },
     // 描点
     addMarker() {
@@ -96,8 +99,82 @@ export default {
         fillColor: '#55ff7f', // 区域填充颜色
         fillOpacity: 0.2 // 区域填充颜色的透明
       }
-      const s = this.$leaflet.geoJSON(hunan, { style }).addTo(this.leafletMap)
+      const s = this.$leaflet.geoJSON(changsha, { style }).addTo(this.leafletMap)
       console.log('addAreaColor===', s)
+    },
+    addHeartLayer() {
+      const testData = {
+        max: 8, // 最大值
+        data: [
+          {
+            lat: 28.39854,
+            lng: 113.3347,
+            count: 5
+          },
+          {
+            lat: 28.38854,
+            lng: 113.3447,
+            count: 8
+          },
+          {
+            lat: 28.39654,
+            lng: 113.3647,
+            count: 2
+          },
+          {
+            lat: 28.41854,
+            lng: 113.3447,
+            count: 7
+          },
+          {
+            lat: 28.52554,
+            lng: 113.4247,
+            count: 8
+          },
+          {
+            lat: 28.53554,
+            lng: 114.4447,
+            count: 8
+          },
+          {
+            lat: 28.55554,
+            lng: 114.4447,
+            count: 8
+          },
+          {
+            lat: 28.91554,
+            lng: 113.4147,
+            count: 8
+          },
+          {
+            lat: 28.88654,
+            lng: 113.3647,
+            count: 3
+          }
+        ]
+      }
+      // 配置
+      const config = {
+        radius: 0.015, // 设置每一个热力点的半径
+        maxOpacity: 0.8, // 设置最大的不透明度
+        minOpacity: 0, // 设置最小的不透明度
+        scaleRadius: true, // 设置热力点是否平滑过渡
+        useLocalExtrema: false, // 使用局部极值
+        latField: 'lat', // 纬度
+        lngField: 'lng', // 经度
+        valueField: 'count', // 热力点的值
+        gradient: {
+          // 热力点颜色的变化范围
+          0.99: 'rgba(255,0,0,1)',
+          0.9: 'rgba(255,255,0,1)',
+          0.8: 'rgba(0,255,0,1)',
+          0.5: 'rgba(0,255,255,1)',
+          0: 'rgba(0,0,255,1)'
+        }
+      }
+      const heatmapLayer = new HeatmapOverlay(config)
+      heatmapLayer.setData(testData)
+      this.leafletMap.addLayer(heatmapLayer)
     }
   }
 }
