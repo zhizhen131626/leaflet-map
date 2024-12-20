@@ -13,7 +13,8 @@ export default {
   data() {
     return {
       leafletMap: null,
-      marker: null
+      marker: null,
+      myIcon: null
     }
   },
   mounted() {
@@ -40,22 +41,58 @@ export default {
         scrollWheelZoom: 'center', // 地图是否允许通过使用鼠标滚轮进行缩放。如果通过'center'，不管鼠标在哪里，都将会放大到视图的中心。
         layers: [layer] // 图层
       })
+      this.myIcon = this.$leaflet.icon({
+        iconUrl: 'http://pic.616pic.com/ys_img/00/08/06/TnCNKnPVDY.jpg',
+        iconSize: [30, 30]
+      })
+      this.leafletMap.on('click', this.handleMapClick)
       this.addMarker()
       this.addPolyline()
+      this.addCircle()
       this.addPolygon()
       this.addPopup()
       this.addAreaColor()
       this.addHeartLayer()
     },
+    // 绘制风场
+    initWind() {
+      const velocityLayer = this.$leaflet.velocityLayer({
+        displayValues: true,
+        // 鼠标位置风场信息。也可以自定义html来进行显示
+        displayOptions: {
+          velocityType: '111', // 鼠标所在位置的风场提示信息说明，会在地图上显示
+          displayPosition: 'bottomleft', // 风场提示信息位置
+          displayEmptyString: 'No wind data'
+        },
+        // data: windData, // 风场数据,需要从外部引入
+        minVelocity: 2, // 速率
+        lineWidth: 2, // 粒子的粗细
+        frameRate: 15, // 定义每秒执行的次数
+        colorScale: ['#2b5783'], // 风场颜色
+        velocityScale: 0.05, // 线条速度
+        particleMultiplier: '0.001', // 线条密度
+        maxVelocity: 3 // 颜色配比
+      })
+      // 风场实例添加到地图上
+      velocityLayer.addTo(this.leafletMap)
+    },
+    // 点击事件
+    handleMapClick({ latlng }) {
+      console.log('handleMapClick===', latlng)
+      const popup = this.$leaflet.popup().setContent(`<p style="color:green;">${latlng}</p>`)
+      this.$leaflet
+        .marker([latlng.lat, latlng.lng], {
+          icon: this.myIcon
+        })
+        .addTo(this.leafletMap)
+        .bindPopup(popup)
+        .openPopup()
+    },
     // 描点
     addMarker() {
-      const myIcon = this.$leaflet.icon({
-        iconUrl: 'http://pic.616pic.com/ys_img/00/08/06/TnCNKnPVDY.jpg',
-        iconSize: [30, 30]
-      })
       this.marker = this.$leaflet
         .marker([28.19854, 112.8347], {
-          icon: myIcon
+          icon: this.myIcon
         })
         .addTo(this.leafletMap)
       console.log('marker===', this.marker)
@@ -69,6 +106,19 @@ export default {
       ]
       const polyline = this.$leaflet.polyline(points, { color: 'red' }).addTo(this.leafletMap)
       console.log('polyline===', polyline)
+    },
+    // 画圆
+    addCircle() {
+      const popup = this.$leaflet.popup().setContent('<p style="color:green;">欢迎你</p>')
+      this.$leaflet
+        .circle([28.2908, 113.26625], 5000, {
+          color: 'red',
+          fillColor: '#f03',
+          fillOpacity: 0.5
+        })
+        .addTo(this.leafletMap)
+        .bindPopup(popup)
+        .openPopup()
     },
     // 画多边形
     addPolygon() {
@@ -176,11 +226,13 @@ export default {
       heatmapLayer.setData(testData)
       this.leafletMap.addLayer(heatmapLayer)
     }
+    // 动态风场
   }
 }
 </script>
 
 <style lang="scss" scoped>
+// 确保定义的映射容器有一个高度,例如通过设置CSS（必须定义一个高度，因为无法获取指定的id名，因此这个库并没有进行高度的处理设置，自己必须设置高度，如同div默认是没有高度的一样）
 #map-container {
   width: 100%;
   height: 100vh;

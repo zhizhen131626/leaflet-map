@@ -1,6 +1,8 @@
 import Vue from 'vue'
 import * as leaflet from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet-velocity/dist/leaflet-velocity.css'
+import 'leaflet-velocity/dist/leaflet-velocity'
 
 // reset css
 import 'normalize.css'
