@@ -1,6 +1,10 @@
 import Vue from 'vue'
+import Antd from 'ant-design-vue'
+import 'ant-design-vue/dist/antd.css'
 import * as leaflet from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.pm'
+import 'leaflet.pm/dist/leaflet.pm.css'
 import 'leaflet-velocity/dist/leaflet-velocity.css'
 import 'leaflet-velocity/dist/leaflet-velocity'
 
@@ -11,6 +15,8 @@ import 'reset-css'
 import App from './App.vue'
 import router from './router'
 import store from './store'
+
+Vue.use(Antd)
 
 Vue.config.productionTip = false
 

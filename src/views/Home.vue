@@ -1,20 +1,34 @@
 <template>
-  <div id="map-container"></div>
+  <div class="map">
+    <div id="map-container"></div>
+    <div class="draw-btn">
+      <a-radio-group v-model="drawerType" @change="drawStart">
+        <a-radio-button value="Circle">绘制圆形</a-radio-button>
+        <a-radio-button value="Rectangle">绘制矩形</a-radio-button>
+        <a-radio-button value="Polygon">绘制多边形</a-radio-button>
+        <a-radio-button class="red" v-if="drawerType" value=""> 取消绘制</a-radio-button>
+      </a-radio-group>
+    </div>
+  </div>
 </template>
 
 <script>
 import HeatmapOverlay from 'heatmap.js/plugins/leaflet-heatmap'
 // import hunan from '@/common/hunan.json'
 import changsha from '@/common/changsha.json'
+import leafletPmCreate from '@/mixins/leaflet-pm-create'
 
 export default {
   name: 'Home',
   components: {},
+  mixins: [leafletPmCreate],
   data() {
     return {
+      drawerType: null,
       leafletMap: null,
       marker: null,
-      myIcon: null
+      myIcon: null,
+      deviceListData: []
     }
   },
   mounted() {
@@ -24,9 +38,24 @@ export default {
   methods: {
     // 初始化地图
     initMap() {
+      // const layer = this.$leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      //   crossOrigin: true
+      // })
       const layer = this.$leaflet.tileLayer(
         'http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}'
       )
+      const gaodeSatellite = this.$leaflet.tileLayer(
+        'http://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}'
+      )
+      // 添加图层控制
+      const baseMaps = {
+        高德矢量: layer,
+        高德影像: gaodeSatellite
+      }
+      // 矢量图层：http://webrd0{1-4}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}
+      // 影像图层：http://webst0{1-4}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}
+      // 百度地图：http://online{0-3}.map.bdimg.com/onlinelabel/?qt=tile&x={x}&y={y}&z={z}&styles=pl&scaler=1&p=1
+      // OpenStreetMap：https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png // 需要翻墙
       this.leafletMap = this.$leaflet.map('map-container', {
         center: [28.19854, 112.8347],
         zoom: 10,
@@ -41,11 +70,12 @@ export default {
         scrollWheelZoom: 'center', // 地图是否允许通过使用鼠标滚轮进行缩放。如果通过'center'，不管鼠标在哪里，都将会放大到视图的中心。
         layers: [layer] // 图层
       })
+      this.$leaflet.control.layers(baseMaps).addTo(this.leafletMap)
       this.myIcon = this.$leaflet.icon({
         iconUrl: 'http://pic.616pic.com/ys_img/00/08/06/TnCNKnPVDY.jpg',
         iconSize: [30, 30]
       })
-      this.leafletMap.on('click', this.handleMapClick)
+      // this.leafletMap.on('click', this.handleMapClick)
       this.addMarker()
       this.addPolyline()
       this.addCircle()
@@ -53,6 +83,96 @@ export default {
       this.addPopup()
       this.addAreaColor()
       this.addHeartLayer()
+    },
+    drawStart() {
+      if (this.drawerType) this.handleStart()
+      else this.handleCancel()
+    },
+    handleStart() {
+      this.leafletMap.pm.enableDraw(this.drawerType, {
+        snappable: false
+      })
+      this.getlatLngs(this.drawerType)
+    },
+    getlatLngs(drawerType) {
+      // pm:drawstart 开始第一个点的时候调用
+      // pm:drawend  禁止绘制时调用
+      // pm:create  创建完成时调用
+      // pm:remove  移除完成时调用
+      this.leafletMap.on('pm:drawstart', (e) => {
+        console.log(e, '开始第一个点的时候调用')
+      })
+      this.leafletMap.on('pm:drawend', (e) => {
+        console.log(e, '禁止绘制')
+      })
+      this.leafletMap.on('pm:create', (e) => {
+        console.log(e, '绘制完成时调用', drawerType)
+        // 获取被选中的设备
+        const polygon = e.layer
+        const bounds = polygon.getBounds()
+        let center = null // 圆心坐标
+        let radius = null // 单位：米
+        let fillMarket = this.deviceListData.filter((item) => bounds.contains(item.latlng))
+        console.log('图形包含选中设备:', fillMarket)
+        if (fillMarket.length) {
+          // 绘制多边形
+          if (drawerType === 'Polygon') {
+            console.log('Polygon===')
+            fillMarket = []
+            this.deviceListData.forEach((item) => {
+              if (this.isPointInPolygon(this.$leaflet.latLng(item.latlng), polygon)) {
+                fillMarket.push(item)
+              }
+            })
+          } else if (drawerType === 'Circle') {
+            // 绘制圆形
+            console.log('Circle===')
+            fillMarket = []
+            center = polygon.getLatLng() // 圆心坐标
+            radius = polygon.getRadius() // 半径
+            // 筛选在圆形范围内的 Marker
+            fillMarket = this.deviceListData.filter(
+              (item) => center.distanceTo(item.latlng) <= radius
+            )
+          }
+          console.log('fillMarket===', fillMarket)
+          if (fillMarket?.length > 0) this.handleSelected(fillMarket)
+        }
+        // 循环markersLayer图层上所有marker
+        // this.markersLayer.eachLayer((marker) => {
+        //   // 判断marker在绘制范围内
+        //   if (bounds.contains(marker.getLatLng())) {
+        //     const polygonFlag =
+        //       drawerType === 'Polygon' && !this.isPointInPolygon(marker.getLatLng(), polygon)
+        //     const circleFlag =
+        //       drawerType === 'Circle' && center.distanceTo(marker.getLatLng()) > radius
+        //     if (polygonFlag || circleFlag) return
+        //     const { alt } = marker.options
+        //     marker.setIcon(
+        //       this.$leaflet.icon({
+        //         iconUrl: this.transIcons({ devType: Number(alt.split('-')[1]), status: 99 }),
+        //         iconSize: [40, 40], // 图标大小，单位(px)
+        //         popupAnchor: [-20, 0], // popup相对于锚点中心的坐标
+        //         tooltipAnchor: [0, -20] // tooltip相对于锚点中心的坐标
+        //       })
+        //     )
+        //   }
+        // })
+        this.cancelDraw()
+      })
+      this.leafletMap.on('pm:remove', (e) => {
+        console.log(e, '移除绘制时调用')
+      })
+    },
+    // 取消绘制
+    handleCancel() {
+      this.leafletMap.pm.disableDraw(this.drawerType)
+      // 移除当前绘制图像
+      this.leafletMap.eachLayer((layer) => {
+        const { _path: path } = layer
+        if (path) layer.remove()
+      })
+      this.drawerType = null
     },
     // 绘制风场
     initWind() {
@@ -233,8 +353,41 @@ export default {
 
 <style lang="scss" scoped>
 // 确保定义的映射容器有一个高度,例如通过设置CSS（必须定义一个高度，因为无法获取指定的id名，因此这个库并没有进行高度的处理设置，自己必须设置高度，如同div默认是没有高度的一样）
-#map-container {
+
+.map {
   width: 100%;
   height: 100vh;
+  position: relative;
+  #map-container {
+    width: 100%;
+    height: 100%;
+  }
+  .draw-btn {
+    position: absolute;
+    top: 15px;
+    left: 50px;
+    z-index: 999;
+    ::v-deep .ant-radio-group {
+      .ant-radio-button-wrapper {
+        height: 40px;
+        line-height: 40px;
+        &.red {
+          border: 1px solid rgba(255, 50, 101, 0.4) !important;
+          background: transparent;
+          color: #ff5674;
+          box-shadow: none;
+          text-shadow: none;
+        }
+        & + .ant-radio-button-wrapper {
+          margin-left: 8px;
+          border: 1px solid rgb(221, 223, 229);
+          border-radius: 4px;
+          &::before {
+            content: none;
+          }
+        }
+      }
+    }
+  }
 }
 </style>
