@@ -43,6 +43,11 @@ export default {
       // })
       const layer = this.$leaflet.tileLayer(
         'http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}'
+        // {
+        //   attribution:
+        //     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        //   preload: true // 开启瓦片预加载
+        // }
       )
       const gaodeSatellite = this.$leaflet.tileLayer(
         'http://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}'
@@ -75,6 +80,15 @@ export default {
         iconUrl: 'http://pic.616pic.com/ys_img/00/08/06/TnCNKnPVDY.jpg',
         iconSize: [30, 30]
       })
+      // const bounds = [
+      //   [0, 0],
+      //   [600, 300]
+      // ]
+      // this.$leaflet
+      //   .imageOverlay('http://pic.616pic.com/ys_img/00/08/06/TnCNKnPVDY.jpg', bounds)
+      //   .addTo(this.leafletMap)
+      // this.leafletMap.fitBounds(bounds)
+      this.leafletMap.pm.setLang('zh') // 设置语言
       // this.leafletMap.on('click', this.handleMapClick)
       this.addMarker()
       this.addPolyline()
